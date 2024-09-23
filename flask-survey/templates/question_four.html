@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Question four</title>
+</head>
+<body>
+    <div id="questions">
+        <h1>{{ question.question }}</h1>
+
+        <form method="POST" action="/questions/4">
+            <input type="radio" id="yes" value="Yes" name="answer" required>
+            <label for="yes">Yes</label>
+
+            <input type="radio" id="no" value="No" name="answer" required>
+            <label for="no">No</label>
+
+            <button type="submit">Next</button>
+    </div>
+</body>
+</html>
