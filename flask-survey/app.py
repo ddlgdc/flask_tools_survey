@@ -1,4 +1,4 @@
-from flask import Flask, redirect, render_template, request
+from flask import Flask, redirect, render_template, request, session, flash
 from flask_debugtoolbar import DebugToolbarExtension
 from surveys import satisfaction_survey
 
@@ -15,78 +15,46 @@ responces_to_survey_questions = []
 @app.route('/')
 def home():
     # Displays start of survye page with base.html
-    
     return render_template('base.html')
 
-# question 1
-@app.route('/questions/1', methods=['POST', 'GET'])
-def question_one():
-    # will return and display question one
-
-    if request.method == 'POST':
-        answer = request.form.get('answer')
-        if not answer:
-            return render_template('question_one.html', question = satisfaction_survey.questions[0], error = 'Please select an answer')
-        
-        responces_to_survey_questions.append(answer)
-        return redirect('/questions/2')
+# route for questions
+@app.route('/questions/<int:question_id>', methods=['POST', 'GET'])
+def question(question_id):
+    # check if question_id is valid
+    if question_id < 1 or question_id > len(satisfaction_survey.questions):
+        flash('You are trying to access an invalid question or skip ahead!')
+        return redirect('/')
     
-    question = satisfaction_survey.questions[0]
-    return render_template('question_one.html', question = question)
-
-# question 2
-@app.route('/questions/2', methods=['POST', 'GET'])
-def question_two():
-    # will return and display question two
-
+    # if the user has answered questions, check their progress
+    if len(responces_to_survey_questions) != question_id - 1:
+        # redirect to next quest
+        return redirect(f'/questions{len(responces_to_survey_questions) + 1}')
+    
+    # handle the post req to store the answer
     if request.method == 'POST':
-        answer = request.form.get('answer')
-        if not answer:
-            return render_template('question_two.html', question=satisfaction_survey.questions[1], error='Please select an answer')
+        if question_id == 3: # handle the special case for question 3 (money amount)
+            money_amount = request.form.get('money')
+            if not money_amount:
+                return render_template('question_three.html', question = satisfaction_survey.questions[2], error = 'Please enter an amount.')
+            responces_to_survey_questions.append(f'${money_amount}')
+        else:
+            answer = request.form.get('answer')
+            if not answer:
+                return render_template(f'question_{question_id}.html', question = satisfaction_survey.questions[question_id - 1], error = 'Please select an answer.')
+            responces_to_survey_questions.append(answer)
         
-        responces_to_survey_questions.append(answer)
-        return redirect('/questions/3')
-
-    question = satisfaction_survey.questions[1]
-    return render_template('question_two.html', question = question)
-
-# question 3
-@app.route('/questions/3', methods=['POST', 'GET'])
-def question_three():
-    # will return and display question three
-
-    if request.method == 'POST':
-        money_amount = request.form.get('money')
-
-        if not money_amount:
-            return render_template('question_three.html', question=satisfaction_survey.questions[2], error='Please select an answer')
-        
-        responces_to_survey_questions.append(f"${money_amount}")
-        return redirect('/questions/4')
-
-    question = satisfaction_survey.questions[2]
-    return render_template('question_three.html', question = question)
-
-# question 4
-@app.route('/questions/4', methods=['POST', 'GET'])
-def question_four():
-    if request.method == 'POST':
-        answer = request.form.get('answer')  
-        
-        if not answer:
-            return render_template('question_four.html', question=satisfaction_survey.questions[3], error='Please select an answer')
-
-        responces_to_survey_questions.append(answer) 
-        return redirect('/thank_you')  
-
-    question = satisfaction_survey.questions[3]  
-    return render_template('question_four.html', question=question)
+        # redirect to the nest quewtions or to thank you page
+        if question_id == len(satisfaction_survey.questions):
+            return redirect('/thank_you')
+        return redirect(f'/questions/{question_id + 1}')
+    
+    question = satisfaction_survey.questions[question_id - 1]
+    return render_template(f'question_{question_id}.html', question = question)
 
 # thank you page with responces
 @app.route('/thank_you', methods=['GET', 'POST'])
 def thank_you():
-    print("Final Responses:", responces_to_survey_questions)
-    return render_template('thank_you.html', responses=responces_to_survey_questions)
+    return render_template('thank_you.html', responses = responces_to_survey_questions)
 
 if __name__ == '__main__':
     app.run(debug = True, port = 5001)
